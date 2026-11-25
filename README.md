@@ -25,7 +25,7 @@ dsh plugin --profile web add dsh-session-push
 dsh plugin --profile web add https://github.com/haidanQAQ/dsh-session-push
 ```
 
-装完重启 DSH。打开 设置 → 插件 → 「会话推送」标签页即可配置（命名空间 `session-push`），保存后即时生效。
+装完重启 DSH。打开 **设置 → 左侧「会话推送」**（和 dsh-pocket 的「手机访问」同样的独立设置页，命名空间 `session-push`）即可配置，保存后即时生效；「设置 → 插件」里也有同名标签页。
 
 ## 设置项
 
@@ -116,7 +116,7 @@ GET 模式留空模板时，参数以 `title` `content` `sessionId` `sessionTitl
 ## 实现要点
 
 - 宿主侧只监听公开的 `session/event` 事件流（`turn/end`、`tool/call`、`tool/result`、`approval/asked`、`approval/decided`、`user/message`），不轮询、不读取会话文件。
-- 设置项由 `Config` 导出的 schemastery schema 声明；浏览器侧 `lib/client.js` 在「设置 → 插件」里注册「会话推送」标签页，经 `ctx.configForms` 读写该命名空间。
+- 设置项由 `Config` 导出的 schemastery schema 声明；浏览器侧 `lib/client.js` 通过 `ctx.slots` 注册 `settings.section`（主导航独立设置页，和 dsh-pocket 同一槽位）与 `settings.plugins.tab`（插件页标签），经 `ctx.configForms` 读写 `session-push` 命名空间。
 - 只用 Node 内置模块（`fetch`、`AbortSignal.timeout`），没有运行时依赖。
 
 ## 测试
