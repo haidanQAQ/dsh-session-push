@@ -1,0 +1,6 @@
+node_modules/
+*.log
+*.log.1
+.DS_Store
+Thumbs.db
+test/home/

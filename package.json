@@ -1,0 +1,57 @@
+{
+  "name": "dsh-session-push",
+  "version": "0.1.0",
+  "description": "DSH 通知插件：会话超过设定时长后结束时推送会话开头，提问框或审批框长时间无人回应时推送问题本身，支持 Bark / Server酱 / Webhook。",
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "icon.png",
+    "README.md",
+    "LICENSE"
+  ],
+  "icon": "./icon.png",
+  "scripts": {
+    "test": "node --import ./test/register.mjs test/test.mjs"
+  },
+  "engines": {
+    "node": ">=22.15"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "notify",
+    "notification",
+    "bark",
+    "serverchan",
+    "webhook"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/schemastery": ">=3.18.0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/schemastery": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haidanQAQ/dsh-session-push.git"
+  },
+  "bugs": {
+    "url": "https://github.com/haidanQAQ/dsh-session-push/issues"
+  },
+  "homepage": "https://github.com/haidanQAQ/dsh-session-push#readme",
+  "license": "MIT"
+}

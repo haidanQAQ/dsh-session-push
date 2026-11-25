@@ -1,0 +1,6 @@
+# 会话结束 / 等待回应推送插件
+# id 决定设置页的命名空间（settings ns = session-push），
+# name 必须是包名，否则加载器找不到模块。
+- insert:
+    - id: session-push
+      name: 'dsh-session-push'
