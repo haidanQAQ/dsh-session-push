@@ -59,13 +59,22 @@ function makeCtx() {
   }
 }
 
+const fakeReact = {
+  createElement: (type, props, ...children) => ({ type, props: props || {}, children: children.flat(99) }),
+  useState: (init) => [typeof init === 'function' ? init() : init, () => {}],
+  useEffect: () => {},
+  useMemo: (fn) => fn(),
+  useCallback: (fn) => fn,
+  useRef: (value) => ({ current: value }),
+}
+
 const sandbox = {
   window: {
     __ModuleLoader__: {
       load: ({ id, factory }) => {
         calls.push('load:' + id)
         exportsRef = factory((spec) => {
-          if (spec === 'react') return { createElement: () => null, useState: () => [undefined, () => {}], useEffect: () => {} }
+          if (spec === 'react') return fakeReact
           throw new Error('unexpected require: ' + spec)
         })
       },
@@ -104,4 +113,14 @@ assert(typeof tab.component === 'function', 'tab 组件是函数')
 const injected = tab.options.inject()
 assert(injected.form === fakeForm, 'inject() 传入 form 控制器')
 assert(tab.options.label() === 't:tab', '标签走 locale')
+
+// 真正渲染一次组件：模块里的 t / 样式 / 字段定义只要有一处引用错，这里就会抛错。
+for (const entry of [section, tab]) {
+  const tree = entry.component(entry.options.inject())
+  const text = JSON.stringify(tree)
+  assert(tree && typeof tree === 'object', entry.options.name + ' 组件可渲染')
+  assert(text.includes('t:title'), entry.options.name + ' 标题走 locale')
+  assert(text.includes('t:sectionBark'), entry.options.name + ' 含 Bark 分组')
+  assert(text.includes('barkKey'), entry.options.name + ' 含 barkKey 字段')
+}
 console.log('ALL PASS (' + calls.length + ' calls)')
