@@ -210,7 +210,7 @@ await tick()
 check('达到阈值触发推送', requests.length === beforeCount + 1, `${beforeCount} → ${requests.length}`)
 last = requests.at(-1)
 const pushed = JSON.parse(last.body)
-check('标题为会话已完成', pushed.title === '会话已完成', pushed.title)
+check('标题为 DSH会话已完成', pushed.title === 'DSH会话已完成', pushed.title)
 check('正文以会话开头开始', pushed.content.startsWith('帮我做一个插件'), pushed.content.slice(0, 40))
 check('正文包含时长信息', pushed.content.includes('时长：25 分'), pushed.content.slice(-80))
 

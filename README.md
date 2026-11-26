@@ -4,7 +4,7 @@
 
 给 [DeepSeek Harness](https://github.com/deepseek-ai)（dsh）用的推送插件：**会话结束**和**弹框等待回应**时，通过 Bark / Server酱 / 通用 Webhook 提醒你。
 
-- **会话结束推送**：会话持续时长达到阈值后结束时，把**会话开头**推出去。标题默认「会话已完成」，正文取该会话第一条真实用户消息，超出字数上限自动截断为 `…`。
+- **会话结束推送**：会话持续时长达到阈值后结束时，把**会话开头**推出去。标题默认「DSH会话已完成」，正文取该会话第一条真实用户消息，超出字数上限自动截断为 `…`。
 - **等待回应推送**：DSH 弹出提问 / 审批选择框后，超过设定时间（默认 2 分钟）没有回应，推送「DSH等待回应中」和框里的问题。
 - 同一会话只推送一次；推送失败不算已推送，下一个结束的轮次会重试。
 - 子代理会话默认不推送；错误 / 中断结束默认也推送（可关）。
@@ -36,7 +36,7 @@ dsh plugin --profile web add https://github.com/haidanQAQ/dsh-session-push
 | `enabled` | `true` | 总开关 |
 | `minMinutes` | `10` | 会话持续达到该分钟数才推送，`0` 表示每次都推 |
 | `durationMode` | `session` | `session` = 会话开始算起；`turn` = 本轮开始算起 |
-| `title` | `会话已完成` | 结束推送标题 |
+| `title` | `DSH会话已完成` | 结束推送标题 |
 | `maxChars` | `300` | 正文字数上限（按可见字符截断） |
 | `includeMeta` | `true` | 正文末尾附加时长 / 会话名 / 完成时间 |
 | `oncePerSession` | `true` | 同一会话只推送一次 |
@@ -94,7 +94,7 @@ DSH 弹出 `ask_user_question` 选择框或审批框后开始计时，超过 `qu
 
 ```json
 {
-  "title": "会话已完成",
+  "title": "DSH会话已完成",
   "content": "会话开头的文本…",
   "sessionId": "…",
   "sessionTitle": "…",

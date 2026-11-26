@@ -1,7 +1,7 @@
 {
   "name": "dsh-session-push",
-  "version": "0.1.0",
-  "description": "DSH 通知插件：会话超过设定时长后结束时推送会话开头，提问框或审批框长时间无人回应时推送问题本身，支持 Bark / Server酱 / Webhook。",
+  "version": "0.1.1",
+  "description": "长时间会话完成，或会话等待回应超时时，推送到手机：支持 Bark、Server酱 和通用 Webhook，让您放心离开工位。",
   "type": "module",
   "main": "./lib/index.js",
   "exports": {
@@ -9,10 +9,13 @@
     "./client": {
       "default": "./lib/client.js"
     },
+    "./locale/*.json": "./locale/*.json",
+    "./icon.png": "./icon.png",
     "./package.json": "./package.json"
   },
   "files": [
     "lib",
+    "locale/*.json",
     "cordis.patch.yml",
     "icon.png",
     "README.md",

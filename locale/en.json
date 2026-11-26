@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Session Push",
+    "description": "Pushes a long-running session's opening, or an unanswered question, to your phone via Bark, Server酱 or a generic webhook — so you can step away from the desk."
+  }
+}
