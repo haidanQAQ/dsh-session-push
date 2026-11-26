@@ -34,12 +34,13 @@ dsh plugin --profile web add https://github.com/haidanQAQ/dsh-session-push
 | 字段 | 默认值 | 说明 |
 | --- | --- | --- |
 | `enabled` | `true` | 总开关 |
-| `minMinutes` | `10` | 会话持续达到该分钟数才推送，`0` 表示每次都推 |
-| `durationMode` | `session` | `session` = 会话开始算起；`turn` = 本轮开始算起 |
+| `minMinutes` | `10` | 计时时长达到该分钟数才推送，`0` 表示每次都推 |
+| `durationMode` | `turn` | `turn` = 从本轮任务开始算起（推荐）；`session` = 从本次连续活动开始算起 |
+| `idleGapMinutes` | `30` | 仅 `session` 模式：相邻记录相隔超过该分钟数就当作新的一次会话重新计时 |
 | `title` | `DSH会话已完成` | 结束推送标题 |
 | `maxChars` | `300` | 正文字数上限（按可见字符截断） |
 | `includeMeta` | `true` | 正文末尾附加时长 / 会话名 / 完成时间 |
-| `oncePerSession` | `true` | 同一会话只推送一次 |
+| `oncePerSession` | `true` | 同一会话的同一轮只推送一次（记录写入 `state.json`，重启后依然有效） |
 | `notifyOnError` | `true` | 错误、中断结束也推送 |
 | `notifySubagents` | `false` | 子代理会话也推送 |
 | `notifyOnQuestion` | `true` | 提问 / 审批弹框等待超时也推送 |
@@ -48,6 +49,13 @@ dsh plugin --profile web add https://github.com/haidanQAQ/dsh-session-push
 | `questionIncludeOptions` | `true` | 推送正文里附上选项列表 |
 | `timeoutSeconds` | `10` | 单次请求超时 |
 | `debugLog` | `false` | 记录跳过原因等调试日志 |
+
+### 计时方式
+
+- `turn`（默认）：只算本轮任务从开始到结束的时长。一条开了很久的会话里，临时问一句、几分钟就结束的这一轮不会触发推送。
+- `session`：从「本次连续活动」的第一条记录算起，中间空闲超过 `idleGapMinutes` 分钟就断开重新计时。适合「连续工作一小时以上再提醒」的用法。
+
+两端都用 `minMinutes` 做阈值；推送后按「会话 + 轮次」记入 `state.json`，DSH 重启、插件重装都不会重复推送同一轮。
 
 ### 等待回应推送
 

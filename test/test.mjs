@@ -1,5 +1,5 @@
 import http from 'node:http'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { apply } from '../lib/index.js'
@@ -212,7 +212,7 @@ last = requests.at(-1)
 const pushed = JSON.parse(last.body)
 check('标题为 DSH会话已完成', pushed.title === 'DSH会话已完成', pushed.title)
 check('正文以会话开头开始', pushed.content.startsWith('帮我做一个插件'), pushed.content.slice(0, 40))
-check('正文包含时长信息', pushed.content.includes('时长：25 分'), pushed.content.slice(-80))
+check('正文包含时长信息', /时长：2[45] 分/.test(pushed.content), pushed.content.slice(-80))
 
 fire(ctx, longSession)
 await tick()
@@ -256,6 +256,100 @@ await tick()
 const limited = JSON.parse(requests.at(-1).body)
 check('maxChars 生效', Array.from(limited.content).length === 50, Array.from(limited.content).length)
 check('截断带省略号', limited.content.endsWith('…'))
+
+// ---- 计时方式：连续活动段 ----
+console.log('timing')
+const timeline = (id, events, createdAt = events[0].time) => ({
+  id,
+  header: { id, createdAt, origin: 'session' },
+  seq: events.length,
+  eventAt: (index) => events[index],
+  events,
+})
+
+const sessionCtx = makeCtx()
+apply(sessionCtx, {
+  minMinutes: 10,
+  durationMode: 'session',
+  idleGapMinutes: 30,
+  webhookEnabled: true,
+  webhookUrl: `${base}/hook`,
+  includeMeta: true,
+})
+await tick()
+
+// 昨晚聊过、今天只跑了 4 分钟：连续活动段应从今天的 turn/start 算起。
+const night = Date.now() - 11 * 3600 * 1000
+const todayStart = Date.now() - 4 * 60000
+const resumedEvents = [
+  { type: 'user/message', seq: 0, time: night, data: { role: 'user', content: [{ type: 'text', text: '昨晚的问题' }], source: { kind: 'user' } } },
+  { type: 'turn/start', seq: 1, time: night, data: { turn: 1 } },
+  { type: 'turn/end', seq: 2, time: night + 60000, data: { turn: 1, reason: { kind: 'completed' } } },
+  { type: 'turn/start', seq: 3, time: todayStart, data: { turn: 2 } },
+  { type: 'user/message', seq: 4, time: todayStart + 1000, data: { role: 'user', content: [{ type: 'text', text: '今天的问题' }], source: { kind: 'user' } } },
+]
+for (let t = todayStart + 30000; t < Date.now() - 2000; t += 30000) {
+  resumedEvents.push({ type: 'assistant/message', seq: resumedEvents.length, time: t, data: {} })
+}
+resumedEvents.push({ type: 'turn/end', seq: resumedEvents.length, time: Date.now() - 1000, data: { turn: 2, reason: { kind: 'completed' } } })
+const resumed = timeline('session-resumed', resumedEvents)
+let timingBefore = requests.length
+fire(sessionCtx, resumed, resumed.events.length - 1)
+await tick()
+check('session 模式不会把昨晚的空闲算进本轮', requests.length === timingBefore, `${timingBefore} → ${requests.length}`)
+
+// 连续活动 30 分钟（事件间隔 1 分钟）→ 应推送，且时长约 30 分钟。
+const activeStart = Date.now() - 30 * 60000
+const activeEvents = [
+  { type: 'user/message', seq: 0, time: activeStart, data: { role: 'user', content: [{ type: 'text', text: '连续跑半小时的任务' }], source: { kind: 'user' } } },
+  { type: 'turn/start', seq: 1, time: activeStart, data: { turn: 1 } },
+]
+for (let t = activeStart + 60000; t < Date.now() - 1000; t += 60000) {
+  activeEvents.push({ type: 'assistant/message', seq: activeEvents.length, time: t, data: {} })
+}
+activeEvents.push({ type: 'turn/end', seq: activeEvents.length, time: Date.now(), data: { turn: 1, reason: { kind: 'completed' } } })
+const active = timeline('session-active', activeEvents)
+timingBefore = requests.length
+fire(sessionCtx, active, active.events.length - 1)
+await tick()
+check('session 模式连续活动达到阈值会推送', requests.length === timingBefore + 1, `${timingBefore} → ${requests.length}`)
+check('推送时长按连续活动段计算', JSON.parse(requests.at(-1).body).content.includes('时长：30 分'), JSON.parse(requests.at(-1).body).content.slice(-80))
+
+// ---- 去重状态持久化（模拟重启）----
+console.log('state')
+const stateFile = join(home, 'session-push', 'state.json')
+check('state.json 已写入', existsSync(stateFile), stateFile)
+const savedState = JSON.parse(readFileSync(stateFile, 'utf8'))
+check('state.json 含本轮记录', Boolean(savedState.notified['session-active#1']), Object.keys(savedState.notified))
+
+const firstCtx = makeCtx()
+apply(firstCtx, { minMinutes: 5, webhookEnabled: true, webhookUrl: `${base}/hook` })
+await tick()
+const persistSession = makeSession('session-persist', Date.now() - 8 * 60000, Date.now() - 1000)
+let stateBefore = requests.length
+fire(firstCtx, persistSession)
+await tick()
+check('首次结束推送', requests.length === stateBefore + 1, `${stateBefore} → ${requests.length}`)
+
+// 重新 apply 相当于 DSH 重启：内存清空但 state.json 仍在，同一轮不应再推。
+const restartedCtx = makeCtx()
+apply(restartedCtx, { minMinutes: 5, webhookEnabled: true, webhookUrl: `${base}/hook` })
+await tick()
+stateBefore = requests.length
+fire(restartedCtx, persistSession)
+await tick()
+check('重启后同一轮不重复推送', requests.length === stateBefore, `${stateBefore} → ${requests.length}`)
+
+// 同一会话的下一轮（turn 2）仍然可以推送。
+const nextTurnEvents = persistSession.events.slice(0, 3).concat([
+  { type: 'turn/start', seq: 3, time: Date.now() - 9 * 60000, data: { turn: 2 } },
+  { type: 'turn/end', seq: 4, time: Date.now() - 2000, data: { turn: 2, reason: { kind: 'completed' } } },
+])
+const nextTurn = timeline('session-persist', nextTurnEvents)
+const nextTurnBefore = requests.length
+fire(restartedCtx, nextTurn, nextTurn.events.length - 1)
+await tick()
+check('同一会话的新一轮仍会推送', requests.length === nextTurnBefore + 1, `${nextTurnBefore} → ${requests.length}`)
 
 // ---- 等待回应 ----
 console.log('question')

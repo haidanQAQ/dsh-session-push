@@ -1,6 +1,6 @@
 {
   "name": "dsh-session-push",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "长时间会话完成，或会话等待回应超时时，推送到手机：支持 Bark、Server酱 和通用 Webhook，让您放心离开工位。",
   "type": "module",
   "main": "./lib/index.js",
